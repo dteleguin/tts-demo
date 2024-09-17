@@ -1,0 +1,140 @@
+# Layout
+# ======
+#
+# :8080 Keycloak Authorization Server
+# :8081 Keycloak Transaction Token Service
+#
+# :8180 Edge
+# :8181 Service 1
+# :8182 Service 2
+
+name: tts
+
+services:
+
+  keycloak-as:
+    image: keycloak/keycloak:24.0.5
+    command: "start-dev"
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    environment:
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
+      KC_HOSTNAME: "keycloak-as"
+      KC_HEALTH_ENABLED: true
+#    volumes:
+#      - ./scripts/healthcheck.sh:/opt/keycloak/bin/healthcheck.sh
+    healthcheck:
+      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)new java.net.URL(args[0]).openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:8080/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+#    healthcheck:
+#      test: ["CMD-SHELL", "/opt/keycloak/bin/healthcheck.sh || exit 1"]
+#      interval: 10s
+#      timeout: 10s
+#      retries: 10
+
+  init-keycloak-as:
+    build: .
+    image: adorsys/keycloak-config-cli:latest-24.0.5
+    depends_on:
+      - keycloak-as
+    volumes:
+      - ./config:/config
+    environment:
+      KEYCLOAK_URL: "http://keycloak-as:8080"
+      KEYCLOAK_USER: "admin"
+      KEYCLOAK_PASSWORD: "admin"
+      KEYCLOAK_AVAILABILITY_CHECK_ENABLED: true
+      IMPORT_FILES_LOCATIONS: "/config/as-external.json"
+
+  keycloak-tts:
+    image: carretti/keycloak-tts:1.0.0-SNAPSHOT
+    command: "start-dev"
+    ports:
+      - "8081:8081"
+    expose:
+      - "8081"
+    environment:
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
+      KC_HTTP_PORT: 8081
+      KC_HOSTNAME: "keycloak-tts"
+      KC_HEALTH_ENABLED: true
+      KC_SPI_OAUTH2_TOKEN_EXCHANGE_TRANSACTION_TOKEN_SERVICE_ISSUER: "http://keycloak-as:8080/realms/external"
+      KC_SPI_OAUTH2_TOKEN_EXCHANGE_TRANSACTION_TOKEN_SERVICE_CLIENT: "frontend"
+      KC_LOG_LEVEL: "INFO,pro.carretti:DEBUG"
+      KC_FEATURES: "token-exchange"
+    healthcheck:
+      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)new java.net.URL(args[0]).openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      keycloak-as:
+        condition: service_healthy
+        restart: true
+
+  init-keycloak-tts:
+    build: .
+    image: adorsys/keycloak-config-cli:latest
+    depends_on:
+      - keycloak-tts
+    volumes:
+      - ./config:/config
+    environment:
+      KEYCLOAK_URL: "http://keycloak-tts:8081"
+      KEYCLOAK_USER: "admin"
+      KEYCLOAK_PASSWORD: "admin"
+      KEYCLOAK_AVAILABILITY_CHECK_ENABLED: true
+      IMPORT_FILES_LOCATIONS: "/config/tts-internal.json"
+
+  edge:
+    hostname: edge
+    image: carretti/edge:1.0.0-SNAPSHOT
+    ports:
+      - "8180:8180"
+    expose:
+      - "8180"
+    environment:
+      quarkus.http.port: 8180
+      quarkus.oidc.auth-server-url: "http://keycloak-as:8080/realms/external"
+      quarkus.rest-client."pro.carretti.tts.edge.Service".url: "http://service-a:8181"
+      carretti.edge.tts.endpoint: "http://keycloak-tts:8081/realms/internal/protocol/openid-connect/token"
+      carretti.edge.tts.audience: "http://trust-domain.example"
+      carretti.edge.tts.resource: "https://backend.example.com/api"
+      carretti.edge.tts.client: "tts-client"
+      carretti.edge.tts.client.secret: "my-special-client-secret"
+    depends_on:
+      init-keycloak-tts:
+        condition: service_completed_successfully
+
+  service-a:
+    image: carretti/service:1.0.0-SNAPSHOT
+    ports:
+      - "8181:8181"
+    expose:
+      - "8181"
+    environment:
+      quarkus.http.port: 8181
+      quarkus.oidc.auth-server-url: http://keycloak-tts:8081/realms/internal
+      carretti.service.downstream.url: http://service-b:8182
+    depends_on:
+      init-keycloak-tts:
+        condition: service_completed_successfully
+
+  service-b:
+    image: carretti/service:1.0.0-SNAPSHOT
+    ports:
+      - "8182:8181"
+    expose:
+      - "8182"
+    environment:
+      quarkus.http.port: 8182
+      quarkus.oidc.auth-server-url: http://keycloak-tts:8081/realms/internal
+    depends_on:
+      init-keycloak-tts:
+        condition: service_completed_successfully

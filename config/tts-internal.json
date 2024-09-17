@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "realm": "internal",
+  "clients": [
+    {
+      "clientId": "tts-client",
+      "name": "TTS Client",
+      "description": "TTS Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "my-special-client-secret",
+      "publicClient": true,
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    }
+  ]
+}
