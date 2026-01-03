@@ -1,8 +1,0 @@
-{
-  "realm": "external",
-  "auth-server-url": "http://keycloak-as:8080/",
-  "ssl-required": "external",
-  "resource": "frontend",
-  "public-client": true,
-  "confidential-port": 0
-}
