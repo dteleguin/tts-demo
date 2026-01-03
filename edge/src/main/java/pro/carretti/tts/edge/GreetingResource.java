@@ -18,8 +18,8 @@ import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -30,6 +30,7 @@ public class GreetingResource {
 
     private static final Logger LOG = Logger.getLogger(GreetingResource.class);
 
+    @Inject
     @RestClient
     Service service;
 
