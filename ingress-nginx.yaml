@@ -1,0 +1,8 @@
+controller:
+    watchIngressWithoutClass: true
+    hostPort:
+      enabled: true
+    service:
+      externalTrafficPolicy: Local
+    config:
+      disable-access-log: "true"

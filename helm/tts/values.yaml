@@ -1,0 +1,65 @@
+edge:
+  image:
+    repository: carretti/edge
+    tag: 1.0.0-SNAPSHOT
+  env:
+    - name: quarkus.log.level
+      value: "INFO"
+    - name: quarkus.oidc.auth-server-url
+      value: "http://keycloak-as-http/auth/realms/external"
+    - name: quarkus.rest-client."pro.carretti.tts.edge.Service".url
+      value: "http://tts-service-a:8080"
+    - name: carretti.edge.tts.endpoint
+      value: "http://keycloak-tts-http/auth/realms/internal/protocol/openid-connect/token"
+    - name: carretti.edge.tts.audience
+      value: "http://trust-domain.example"
+    - name: carretti.edge.tts.resource
+      value: "https://backend.example.org/api"
+    - name: carretti.edge.tts.client
+      value: "tts-client"
+    - name: carretti.edge.tts.client.secret
+      value: "my-special-client-secret"
+    - name: SPIFFE_ENDPOINT_SOCKET
+      value: unix:///spiffe-workload-api/spire-agent.sock
+  volumes:
+  - name: spiffe-workload-api
+    csi:
+      driver: "csi.spiffe.io"
+      readOnly: true
+  volumeMounts:
+  - name: spiffe-workload-api
+    mountPath: /spiffe-workload-api
+    readOnly: true
+  ingress:
+    enabled: true
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: edge.test
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+     - secretName: edge.test
+       hosts:
+         - edge.test
+
+service-a:
+  image:
+    repository: carretti/service
+    tag: 1.0.0-SNAPSHOT
+  env:
+    - name: quarkus.oidc.auth-server-url
+      value: "http://keycloak-tts-http/auth/realms/internal"
+    - name: carretti.service.downstream.url
+      value: "http://tts-service-b:8080"
+
+service-b:
+  image:
+    repository: carretti/service
+    tag: 1.0.0-SNAPSHOT
+  env:
+    - name: quarkus.oidc.auth-server-url
+      value: "http://keycloak-tts-http/auth/realms/internal"

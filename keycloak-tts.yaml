@@ -1,0 +1,70 @@
+fullnameOverride: "keycloak-tts"
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-port=8080"
+  - "--hostname-strict=false"
+proxy:
+  enabled: true
+  mode: xforwarded
+extraEnv: |
+  - name: KC_LOG_LEVEL
+    value: INFO,pro.carretti.keycloak.tts:DEBUG,org.keycloak.broker.spiffe:DEBUG
+  - name: KC_CACHE
+    value: local
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: admin
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    value: admin
+  - name: KC_HOSTNAME
+    value: "https://tts.test/auth"
+  - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+    value: "true"
+  - name: KC_FEATURES
+    value: "spiffe,client-auth-federated"
+  - name: JAVA_OPTS_APPEND
+    value: >-
+      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+  - name: KC_SPI_OAUTH2_TOKEN_EXCHANGE_TRANSACTION_TOKEN_SERVICE_ISSUER
+    value: "http://keycloak-as-http/auth/realms/external"
+  - name: KC_SPI_OAUTH2_TOKEN_EXCHANGE_TRANSACTION_TOKEN_SERVICE_CLIENT
+    value: "frontend"
+database:
+  vendor: postgres
+  hostname: postgresql
+  port: 5432
+  username: keycloak
+  password: keycloak
+  database: keycloak-tts
+extraInitContainers: |
+  - name: keycloak-tts
+    image: {{ .Values.initContainerImage | default "carretti/keycloak-tts" }}
+    imagePullPolicy: IfNotPresent
+    command:
+      - sh
+    args:
+      - -c
+      - |
+        echo "Copying providers..."
+        cp -R /tmp/providers/* /providers/
+    volumeMounts:
+      - name: providers
+        mountPath: /providers
+extraVolumeMounts: |
+  - name: providers
+    mountPath: /opt/keycloak/providers
+extraVolumes: |
+  - name: providers
+    emptyDir: {}
+ingress:
+  enabled: true
+  rules:
+    - host: tts.test
+      paths:
+        - path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/'
+          pathType: Prefix
+  tls:
+    - hosts:
+        - tts.test
+      secretName: tts.test

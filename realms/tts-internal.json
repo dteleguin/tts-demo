@@ -1,0 +1,141 @@
+{
+  "enabled": true,
+  "realm": "internal",
+  "clients": [
+    {
+      "clientId": "tts-client",
+      "name": "TTS Client",
+      "description": "TTS Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "my-special-client-secret",
+      "publicClient": true,
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    },
+    {
+      "clientId": "tts-client-spiffe",
+      "name": "TTS Client (SPIFFE)",
+      "description": "TTS Client (SPIFFE)",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "federated-jwt",
+      "secret": "**********",
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "logout.confirmation.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1770598005",
+        "backchannel.logout.session.required": "false",
+        "jwt.credential.sub": "spiffe://example.org/ns/default/sa/tts-edge",
+        "standard.token.exchange.enabled": "false",
+        "jwt.credential.issuer": "spiffe",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "display.on.consent.screen": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }    
+  ],
+  "identityProviders": [
+    {
+      "alias": "spiffe",
+      "providerId": "spiffe",
+      "enabled": true,
+      "config": {
+        "allowCreate": "true",
+        "trustDomain": "spiffe://example.org",
+        "bundleEndpoint": "http://spire-spiffe-oidc-discovery-provider.spire-server/keys"
+      }
+    },
+    {
+      "alias": "tts",
+      "displayName": "TTS Identity Provider",
+      "providerId": "oidc",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "off",
+      "trustEmail": false,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": true,
+      "hideOnLogin": true,
+      "config": {
+        "tokenUrl": "http://keycloak-as-http/auth/realms/external/protocol/openid-connect/token",
+        "acceptsPromptNoneForwardFromClient": "false",
+        "jwksUrl": "http://keycloak-as-http/auth/realms/external/protocol/openid-connect/certs",
+        "isAccessTokenJWT": "false",
+        "showInAccountConsole": "ALWAYS",
+        "filteredByClaim": "false",
+        "backchannelSupported": "false",
+        "caseSensitiveOriginalUsername": "false",
+        "issuer": "https://auth.test/auth/realms/external",
+        "loginHint": "false",
+        "clientAuthMethod": "client_secret_post",
+        "syncMode": "LEGACY",
+        "clientSecret": "**********",
+        "requiresShortStateParameter": "false",
+        "allowedClockSkew": "0",
+        "userInfoUrl": "http://keycloak-as-http/auth/realms/external/protocol/openid-connect/userinfo",
+        "validateSignature": "true",
+        "clientId": "frontend",
+        "uiLocales": "false",
+        "disableNonce": "false",
+        "useJwksUrl": "true",
+        "tokenIntrospectionUrl": "http://keycloak-as-http/auth/realms/external/protocol/openid-connect/token/introspect",
+        "sendClientIdOnLogout": "false",
+        "pkceEnabled": "false",
+        "metadataDescriptorUrl": "http://keycloak-as-http/auth/realms/external/.well-known/openid-configuration",
+        "authorizationUrl": "http://keycloak-as-http/auth/realms/external/protocol/openid-connect/auth",
+        "disableUserInfo": "false",
+        "logoutUrl": "http://keycloak-as-http/auth/realms/external/protocol/openid-connect/logout",
+        "sendIdTokenOnLogout": "true",
+        "passMaxAge": "false",
+        "disableTypeClaimCheck": "false",
+        "tts.audience": "http://trust-domain.example"
+      }
+    }
+  ]  
+}

@@ -1,0 +1,12 @@
+image:
+  debug: true
+primary:
+  initdb:
+    scripts:
+      00_init_database.sql: |
+        CREATE DATABASE "keycloak-as" OWNER keycloak;
+        CREATE DATABASE "keycloak-tts" OWNER keycloak;
+auth:
+  username: keycloak
+  password: keycloak
+  database: keycloak

@@ -1,0 +1,41 @@
+fullnameOverride: "keycloak-as"
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-port=8080"
+  # - "--hostname-strict=false"
+proxy:
+  enabled: true
+  mode: xforwarded
+extraEnv: |
+  - name: KC_CACHE
+    value: local
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: admin
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    value: admin
+  - name: KC_HOSTNAME
+    value: "https://auth.test/auth"
+  - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+    value: "true"
+  - name: JAVA_OPTS_APPEND
+    value: >-
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+database:
+  vendor: postgres
+  hostname: postgresql
+  port: 5432
+  username: keycloak
+  password: keycloak
+  database: keycloak-as
+ingress:
+  enabled: true
+  rules:
+    - host: auth.test
+      paths:
+        - path: '{{ tpl .Values.http.relativePath $ | trimSuffix "/" }}/'
+          pathType: Prefix
+  tls:
+    - hosts:
+        - auth.test
+      secretName: auth.test

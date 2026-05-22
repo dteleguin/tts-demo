@@ -1,0 +1,7 @@
+image:
+  tag: "latest"
+env:
+  IMPORT_FILES_LOCATIONS: /config/*.json
+secrets:
+  KEYCLOAK_PASSWORD: "admin"
+
