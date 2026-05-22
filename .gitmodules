@@ -1,3 +1,3 @@
 [submodule "keycloak-tts"]
 	path = keycloak-tts
-	url = https://github.com/dteleguin/keycloak-tts.git
+	url = git@github.com:CarrettiPro/keycloak-tts.git
