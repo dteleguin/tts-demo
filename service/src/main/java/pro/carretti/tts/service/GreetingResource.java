@@ -17,6 +17,10 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import org.jboss.logging.Logger;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jwt.SignedJWT;
+
 @Authenticated
 @Path("/hello")
 public class GreetingResource {
@@ -26,7 +30,7 @@ public class GreetingResource {
     private final Optional<Service> service;
 
     @Inject
-    JsonWebToken jwt;
+    JsonWebToken txToken;
 
     public GreetingResource() {
         service = ConfigProvider.getConfig().getOptionalValue("carretti.service.downstream.url", String.class).map(uri ->
@@ -40,7 +44,19 @@ public class GreetingResource {
     @Produces(MediaType.TEXT_PLAIN)
     public String hello() {
         LOG.info("hello");
-        LOG.infov("JWT = {0}", jwt);
-        return service.map(s -> s.get(jwt.getRawToken())).orElse("Hello from Service!");
+
+        // Decode and pretty print the transaction token as JSON
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            SignedJWT signedJWT = SignedJWT.parse(txToken.getRawToken());
+            String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(signedJWT.getPayload().toJSONObject());
+            LOG.infov("Received transaction token:\n{0}", prettyJson);
+        } catch (java.text.ParseException e) {
+            LOG.warnv("Failed to parse transaction token: {0}", e.getMessage());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        return service.map(s -> s.get(txToken.getRawToken())).orElse("Hello from Service!");
     }
 }
