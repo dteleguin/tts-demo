@@ -1,5 +1,8 @@
 package pro.carretti.tts.edge;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.auth.*;
 import com.nimbusds.oauth2.sdk.http.*;
@@ -79,10 +82,20 @@ public class GreetingResource {
     public String hello() throws URISyntaxException, IOException, ParseException {
         LOG.info("hello");
         String token = jwt.getRawToken();
+
         LOG.info("Obtaining transaction token...");
         AccessToken txToken = getTxToken(token);
-        String s = txToken.toString();
-        LOG.infov("Obtained transaction token: {0}...", s.substring(0, Math.min(s.length(), 16)));
+
+        // Decode and pretty print the transaction token as JSON
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            SignedJWT signedJWT = SignedJWT.parse(txToken.getValue());
+            String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(signedJWT.getPayload().toJSONObject());
+            LOG.infov("Obtained transaction token:\n{0}", prettyJson);
+        } catch (java.text.ParseException e) {
+            LOG.warnv("Failed to parse transaction token: {0}", e.getMessage());
+        }
+
         return service.get(txToken.getValue());
     }
 
