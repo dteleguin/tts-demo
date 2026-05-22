@@ -11,6 +11,13 @@ import com.nimbusds.oauth2.sdk.token.*;
 import com.nimbusds.oauth2.sdk.tokenexchange.*;
 
 import io.quarkus.security.Authenticated;
+import io.spiffe.exception.JwtSourceException;
+import io.spiffe.exception.JwtSvidException;
+import io.spiffe.exception.SocketEndpointAddressException;
+import io.spiffe.svid.jwtsvid.JwtSvid;
+import io.spiffe.workloadapi.DefaultJwtSource;
+import io.spiffe.workloadapi.JwtSource;
+import io.vertx.ext.web.RoutingContext;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -100,10 +107,21 @@ public class GreetingResource {
     }
 
     private AccessToken getTxToken(String token) throws URISyntaxException, IOException, ParseException {
+        ClientAuthentication clientAuth = null;
         // The client credentials for a basic authentication
-        ClientID clientID = new ClientID(client);
-        Secret clientSecret = new Secret(secret);
-        ClientSecretBasic clientSecretBasic = new ClientSecretBasic(clientID, clientSecret);
+        // ClientID clientID = new ClientID(client);
+        // Secret clientSecret = new Secret(secret);
+        // clientAuth = new ClientSecretBasic(clientID, clientSecret);
+
+       try {
+           JwtSource source = DefaultJwtSource.newSource();
+           JwtSvid svid = source.fetchJwtSvid("https://tts.test/auth/realms/internal");
+           LOG.infov("Obtained SVID: {0}", svid.getSpiffeId());
+           clientAuth = new PrivateKeyJWT(SignedJWT.parse(svid.marshal()));
+
+       } catch (JwtSourceException | SocketEndpointAddressException | JwtSvidException | java.text.ParseException e) {
+           LOG.error("Error obtaining SVID", e);
+       }
 
         // The upstream access token (must have been validated)
         AccessToken accessToken = new BearerAccessToken(token);
@@ -113,14 +131,16 @@ public class GreetingResource {
         Scope scope = null; // default scope for resource
         TokenTypeURI txnTokenType = TokenTypeURI.parse("urn:ietf:params:oauth:token-type:txn_token");
         List<Audience> audiences = Audience.create(audience);
-        List<URI> resources = Collections.singletonList(new URI(resource));
-        TokenRequest tokenRequest = new TokenRequest(
+        var resources = new URI[] { new URI(resource) };
+        TokenRequest tokenRequest = new TokenRequest.Builder(
                 tokenEndpoint,
-                clientSecretBasic,
-                new TokenExchangeGrant(accessToken, TokenTypeURI.ACCESS_TOKEN, null, null, txnTokenType, audiences),
-                scope,
-                resources,
-                null);
+                clientAuth,
+                new TokenExchangeGrant(accessToken, TokenTypeURI.ACCESS_TOKEN, null, null, txnTokenType, audiences))
+            .customParameter("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-spiffe")
+            .customParameter("client_id", "spiffe://example.org/ns/default/sa/tts-edge")
+            .scope(scope)
+            .resources(resources)
+            .build();
 
         // Send the token request
         HTTPRequest httpRequest = tokenRequest.toHTTPRequest();

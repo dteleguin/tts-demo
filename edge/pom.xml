@@ -29,6 +29,8 @@
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <quarkus.container-image.build>true</quarkus.container-image.build>
         <quarkus.container-image.group>${docker.image.group}</quarkus.container-image.group>
+        <nimbus.version>11.31.1</nimbus.version>
+        <spiffe.version>0.8.15</spiffe.version>
     </properties>
 
     <dependencyManagement>
@@ -100,7 +102,19 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>oauth2-oidc-sdk</artifactId>
-            <version>11.30.1</version>
+            <version>${nimbus.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>io.spiffe</groupId>
+            <artifactId>java-spiffe-core</artifactId>
+            <version>${spiffe.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>io.spiffe</groupId>
+            <artifactId>grpc-netty-linux</artifactId>
+            <version>${spiffe.version}</version>
         </dependency>
     </dependencies>
 
