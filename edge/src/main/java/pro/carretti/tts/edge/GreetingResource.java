@@ -53,12 +53,18 @@ public class GreetingResource {
     private static final String DEFAULT_TTS_CLIENT = "tts-client";
     private static final String DEFAULT_TTS_CLIENT_SECRET = "my-special-client-secret";
 
+    // Transaction Token Request
+    private static final String REQUEST_CONTEXT = "request_context";
+
     static {
         try {
             TXN_TOKEN_TYPE = TokenTypeURI.parse("urn:ietf:params:oauth:token-type:txn_token");
         } catch (ParseException ex) {
         }
     }
+
+    @Inject
+    RoutingContext context;
 
     @Inject
     JsonWebToken jwt;
@@ -128,16 +134,24 @@ public class GreetingResource {
 
         // Compose the token exchange request
         URI tokenEndpoint = new URI(endpoint);
-        Scope scope = null; // default scope for resource
+        Scope scope = Scope.parse("foobar"); // default scope for resource
         TokenTypeURI txnTokenType = TokenTypeURI.parse("urn:ietf:params:oauth:token-type:txn_token");
         List<Audience> audiences = Audience.create(audience);
         var resources = new URI[] { new URI(resource) };
+        var host = context.request().remoteAddress();
+        var requestContext = String.format("""
+            {
+                "req_ip": "%s",
+                "authn": "urn:ietf:rfc:6749"
+            }
+        """, host);
         TokenRequest tokenRequest = new TokenRequest.Builder(
                 tokenEndpoint,
                 clientAuth,
                 new TokenExchangeGrant(accessToken, TokenTypeURI.ACCESS_TOKEN, null, null, txnTokenType, audiences))
             .customParameter("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-spiffe")
             .customParameter("client_id", "spiffe://example.org/ns/default/sa/tts-edge")
+            .customParameter(REQUEST_CONTEXT, requestContext)
             .scope(scope)
             .resources(resources)
             .build();
