@@ -13,7 +13,7 @@ This is a demo environment for the [Keycloak Transaction Tokens](https://github.
 
 ## Build
 ```
-$ git clone --recurse-submodules https://github.com/dteleguin/tts-demo
+$ git clone --recurse-submodules https://github.com/CarrettiPro/tts-demo
 $ cd tts-demo
 $ mvn clean install -DskipTests
 ```
